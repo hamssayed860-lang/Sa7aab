@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z-Net | إمبراطورية التواصل الاجتماعي</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: #0b0f19; color: #f3f4f6; padding-bottom: 50px; }
+        header { background-color: #111827; display: flex; justify-content: space-between; align-items: center; padding: 15px 5%; border-bottom: 1px solid #1f2937; position: sticky; top: 0; z-index: 100; }
+        .logo { font-size: 24px; font-weight: bold; color: #3b82f6; }
+        nav ul { display: flex; list-style: none; }
+        nav ul li a { color: #9ca3af; text-decoration: none; padding: 10px 15px; cursor: pointer; }
+        nav ul li a.active { color: #3b82f6; font-weight: bold; }
+        .user-profile { display: flex; align-items: center; gap: 15px; }
+        .tokens { background-color: #1f2937; padding: 6px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; color: #10b981; border: 1px solid #065f46; }
+        .btn-profile { background-color: #3b82f6; border: none; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .container { max-width: 650px; margin: 30px auto; padding: 0 15px; }
+        .post-box { background-color: #111827; padding: 20px; border-radius: 12px; border: 1px solid #1f2937; margin-bottom: 25px; }
+        .post-box h3 { margin-bottom: 12px; font-size: 15px; color: #9ca3af; }
+        textarea { width: 100%; height: 90px; background-color: #1f2937; border: 1px solid #374151; border-radius: 8px; color: white; padding: 12px; resize: none; margin-bottom: 12px; outline: none; font-size: 15px; }
+        .post-actions { display: flex; justify-content: space-between; }
+        .btn-primary { background-color: #3b82f6; border: none; color: white; padding: 10px 22px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn-secondary { background-color: #374151; border: none; color: white; padding: 10px 15px; border-radius: 8px; cursor: pointer; }
+        .feed .post { background-color: #111827; padding: 20px; border-radius: 12px; border: 1px solid #1f2937; margin-bottom: 20px; }
+        .post-header { display: flex; align-items: center; margin-bottom: 15px; }
+        .avatar { font-size: 32px; margin-left: 12px; }
+        .time { font-size: 12px; color: #6b7280; }
+        .post-content { line-height: 1.6; margin-bottom: 15px; font-size: 15px; color: #e5e7eb; }
+        .post-footer { display: flex; justify-content: space-between; border-top: 1px solid #1f2937; padding-top: 15px; align-items: center; }
+        .post-footer button { background: none; border: none; color: #9ca3af; cursor: pointer; font-size: 14px; }
+        .post-footer button.liked { color: #ef4444; font-weight: bold; }
+        .earnings { color: #10b981; font-weight: bold; font-size: 14px; background: rgba(16, 185, 129, 0.1); padding: 4px 10px; border-radius: 6px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">Z-Net 🚀</div>
+        <nav>
+            <ul>
+                <li><a class="active" onclick="location.reload()">الرئيسية</a></li>
+                <li><a onclick="alert('جاري مسح الشبكة واكتشاف مستخدمين جدد قريباً...')">اكتشف</a></li>
+                <li><a id="walletMenuBtn">المحفظة الرقمية</a></li>
+            </ul>
+        </nav>
+        <div class="user-profile">
+            <span class="tokens" id="globalWallet">💰 150.00 نقطة</span>
+            <button class="btn-profile" id="profileHeaderBtn">حسابي</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="post-box">
+            <h3 id="welcomeMessage">انشر فكرتك للعالم يا قائد..</h3>
+            <textarea id="myInput" placeholder="اكتب فكرتك هنا ودعنا نرى كيف سيحفظها الموقع..."></textarea>
+            <div class="post-actions">
+                <button class="btn-secondary" onclick="alert('قريباً سيتم إضافة رفع الصور!')">📸 صورة/فيديو</button>
+                <button class="btn-primary" id="publishBtn">نشر في الفضاء الرقمي ⚡</button>
+            </div>
+        </section>
+
+        <section class="feed" id="postFeed"></section>
+    </main>
+
+    <script>
+        // قراءة البيانات المحفوظة
+        let currentUser = localStorage.getItem('znet_user') || "القائد";
+        let totalWalletPoints = parseFloat(localStorage.getItem('znet_wallet')) || 150.00;
+
+        // تحديث المظهر بالاسم الحالي
+        function updateUI() {
+            document.getElementById('profileHeaderBtn').innerText = currentUser;
+            document.getElementById('welcomeMessage').innerText = `انشر فكرتك للعالم يا ${currentUser}..`;
+            document.getElementById('globalWallet').innerText = `💰 ${totalWalletPoints.toFixed(2)} نقطة`;
+        }
+
+        // تشغيل زر حسابي لتعديل الاسم
+        document.getElementById('profileHeaderBtn').addEventListener('click', function() {
+            let newName = prompt("ما هو اسمك الجديد لتسجيله في المنصة؟", currentUser);
+            if (newName && newName.trim() !== "") {
+                currentUser = newName.trim();
+                localStorage.setItem('znet_user', currentUser);
+                updateUI();
+                loadPosts();
+            }
+        });
+
+        // دالة عرض المنشورات
+        function loadPosts() {
+            let feed = document.getElementById('postFeed');
+            feed.innerHTML = ''; 
+
+            // منشور ترحيبي ثابت
+            let defaultPost = document.createElement('div');
+            defaultPost.className = 'post';
+            defaultPost.innerHTML = `
+                <div class="post-header"><div class="avatar">👤</div><div><h4>المستخدم الأول (الشريك الرقمي)</h4><span class="time">منذ دقيقتين</span></div></div>
+                <p class="post-content">أهلاً بك في النسخة النهائية المفتوحة! اضغط على زر "حسابي" بالأعلى لتغيير اسمك فوراً، ثم جرب النشر والتفاعل بنجاح وبدون أي قيود.</p>
+                <div class="post-footer"><button style="color:#ef4444; font-weight:bold;">❤️ تفاعل (1200)</button><button>💬 نقاش (432)</button><span class="earnings">⚡ أرباح ثابتة: +4.50$</span></div>
+            `;
+            feed.appendChild(defaultPost);
+
+            // تحميل بقية المنشورات من الذاكرة
+            let savedPosts = JSON.parse(localStorage.getItem('znet_posts')) || [];
+            savedPosts.forEach((post, index) => {
+                let postDiv = document.createElement('div');
+                postDiv.className = 'post';
+                postDiv.style.marginTop = '20px';
+                let likedClass = post.isLiked ? 'liked' : '';
+
+                postDiv.innerHTML = `
+                    <div class="post-header">
+                        <div class="avatar">👑</div>
+                        <div><h4>${post.author}</h4><span class="time">${post.time}</span></div>
+                    </div>
+                    <p class="post-content">${post.content}</p>
+                    <div class="post-footer">
+                        <button class="like-btn ${likedClass}" onclick="handleLike(${index})">❤️ تفاعل (<span>${post.likes}</span>)</button>
+                        <button>💬 نقاش (0)</button>
+                        <span class="earnings">⚡ أرباح المنشور: +${post.earning}$</span>
+                    </div>
+                `;
+                feed.insertBefore(postDiv, feed.firstChild);
+            });
+        }
+
+        // زر النشر
+        document.getElementById('publishBtn').addEventListener('click', function() {
+            let textInput = document.getElementById('myInput').value;
+            if (textInput.trim() === "") {
+                alert("اكتب فكرتك أولاً قبل النشر!");
+                return;
+            }
+
+            let savedPosts = JSON.parse(localStorage.getItem('znet_posts')) || [];
+            let randomEarning = (Math.random() * 5).toFixed(2);
+
+            let newPostData = {
+                author: currentUser,
+                content: textInput,
+                time: new Date().toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'}),
+                likes: 0,
+                isLiked: false,
+                earning: randomEarning
+            };
+
+            savedPosts.push(newPostData);
+            localStorage.setItem('znet_posts', JSON.stringify(savedPosts));
+            document.getElementById('myInput').value = "";
+            loadPosts();
+        });
+
+        // زر التفاعل (اللايك)
+        window.handleLike = function(index) {
+            let savedPosts = JSON.parse(localStorage.getItem('znet_posts')) || [];
+            let post = savedPosts[index];
+
+            if (!post.isLiked) {
+                post.isLiked = true; post.likes += 1; totalWalletPoints += 1.50;
+            } else {
+                post.isLiked = false; post.likes -= 1; totalWalletPoints -= 1.50;
+            }
+
+            savedPosts[index] = post;
+            localStorage.setItem('znet_posts', JSON.stringify(savedPosts));
+            localStorage.setItem('znet_wallet', totalWalletPoints);
+            updateUI();
+            loadPosts();
+        };
+
+        // زر المحفظة
+        document.getElementById('walletMenuBtn').addEventListener('click', function() {
+            let savedPosts = JSON.parse(localStorage.getItem('znet_posts')) || [];
+            alert(`💳 تفاصيل محفظة [ ${currentUser} ]:\n-----------------------\n• رصيدك الإجمالي الحالي: ${totalWalletPoints.toFixed(2)} نقطة.\n• عدد منشوراتك: ${savedPosts.filter(p => p.author === currentUser).length} منشور.`);
+        });
+
+        // تشغيل الموقع لأول مرة
+        updateUI();
+        loadPosts();
+    </script>
+</body>
+</html>
